@@ -1,6 +1,8 @@
 {
   "name": "Mobile Croaker",
-  "description": "Inspired by project OpenClaw. Autonomous mobile workspace agent using Accessibility Services, ADB fallback bridge, CV hierarchy navigation, and encrypted rsyslog telemetry.",
+  "description": "Inspired by project OpenClaw. Created by Inceptorium Appokryf in scope of related with RAUSON developement operation for RA-SEE, UCDI, HAO and SEIAIC. Autonomous mobile workspace agent using Accessibility Services, ADB fallback bridge, CV hierarchy navigation, and encrypted rsyslog telemetry.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

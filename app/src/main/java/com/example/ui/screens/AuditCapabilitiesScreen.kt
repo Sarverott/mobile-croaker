@@ -44,6 +44,9 @@ import com.example.ui.theme.CriticalRed
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.ElectricBlue
 import com.example.ui.theme.NeonEmerald
+import com.example.ui.theme.StatusBlue
+import com.example.ui.theme.TerminalBorder
+import com.example.ui.theme.TerminalWhite
 import com.example.ui.theme.WarningAmber
 
 @Composable
@@ -55,6 +58,40 @@ fun AuditCapabilitiesScreen(viewModel: MainViewModel, modifier: Modifier = Modif
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 0. Attribution & Heritage Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, TerminalBorder, RoundedCornerShape(14.dp))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "HERITAGE & OPEN SOURCE INSPIRATION",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = StatusBlue,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Mobile Croaker (RAUSON Node)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TerminalWhite
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "This application is inspired by project OpenClaw (https://github.com/openclaw/openclaw), adopting its agentic mobile workspace vision. Developed by Inceptorium Apokryf (apokryf.pl) in scope of RAUSON operations for RA-SEE, UCDI, HAO and SEIAIC.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
         // 1. Feasibility Assessment Card
         item {
             Card(

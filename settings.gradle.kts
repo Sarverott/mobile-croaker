@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "OpenClaw Agent"
+rootProject.name = "Mobile Croaker"
 
 include(":app")

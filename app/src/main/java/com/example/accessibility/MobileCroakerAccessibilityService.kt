@@ -17,15 +17,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 /**
- * OpenClaw Core Accessibility Service:
+ * Mobile Croaker Core Accessibility Service:
+ * (RAUSON - RavensArmy User Simulating Operational Node by Inceptorium Apokryf / apokryf.pl).
+ * Inspired by OpenClaw architecture.
  * Operates on non-rooted devices across Android 7.0 (API 24) to Android 15 (API 35+).
  * Handles UI tree inspection, node action execution, coordinate gesture dispatch,
- * and system UI dialog detection.
+ * and system UI dialog auto-recovery.
  */
-class OpenClawAccessibilityService : AccessibilityService() {
+class MobileCroakerAccessibilityService : AccessibilityService() {
 
     companion object {
-        private const val TAG = "OpenClawA11yService"
+        private const val TAG = "MobileCroakerA11y"
 
         private val _isServiceConnected = MutableStateFlow(false)
         val isServiceConnected: StateFlow<Boolean> = _isServiceConnected.asStateFlow()
@@ -46,7 +48,7 @@ class OpenClawAccessibilityService : AccessibilityService() {
         val lastAlertMessage: StateFlow<String?> = _lastAlertMessage.asStateFlow()
 
         @Volatile
-        var instance: OpenClawAccessibilityService? = null
+        var instance: MobileCroakerAccessibilityService? = null
             private set
     }
 
@@ -54,7 +56,7 @@ class OpenClawAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         _isServiceConnected.value = true
-        Log.i(TAG, "OpenClaw Accessibility Service connected successfully.")
+        Log.i(TAG, "Mobile Croaker Accessibility Service connected successfully.")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -76,7 +78,7 @@ class OpenClawAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        Log.w(TAG, "OpenClaw Accessibility Service interrupted")
+        Log.w(TAG, "Mobile Croaker Accessibility Service interrupted")
     }
 
     override fun onDestroy() {
@@ -134,7 +136,7 @@ class OpenClawAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Dumps the current active window view hierarchy as an immutable UiNode tree snapshot.
+     * Dumps current active window view hierarchy as an immutable UiNode tree snapshot.
      */
     fun dumpCurrentHierarchy(): UiNode? {
         val root = rootInActiveWindow ?: return null
@@ -181,7 +183,6 @@ class OpenClawAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return false
         val matchedNode = findNode(root, text, viewId, contentDesc) ?: return false
 
-        // Try direct click on node or its clickable ancestors
         var curr: AccessibilityNodeInfo? = matchedNode
         while (curr != null) {
             if (curr.isClickable && curr.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
@@ -190,7 +191,6 @@ class OpenClawAccessibilityService : AccessibilityService() {
             curr = curr.parent
         }
 
-        // If direct node click action failed, fall back to center coordinate tap via dispatchGesture
         val bounds = Rect()
         matchedNode.getBoundsInScreen(bounds)
         if (!bounds.isEmpty) {
@@ -266,17 +266,14 @@ class OpenClawAccessibilityService : AccessibilityService() {
         viewId: String?,
         contentDesc: String?
     ): AccessibilityNodeInfo? {
-        // Priority 1: Match by viewId
         if (!viewId.isNullOrBlank()) {
             val list = root.findAccessibilityNodeInfosByViewId(viewId)
             if (list.isNotEmpty()) return list[0]
         }
-        // Priority 2: Match by text
         if (!text.isNullOrBlank()) {
             val list = root.findAccessibilityNodeInfosByText(text)
             if (list.isNotEmpty()) return list[0]
         }
-        // Priority 3: Deep search for contentDescription
         if (!contentDesc.isNullOrBlank()) {
             return searchContentDesc(root, contentDesc)
         }
@@ -296,3 +293,6 @@ class OpenClawAccessibilityService : AccessibilityService() {
         return null
     }
 }
+
+// Backward-compatibility alias
+typealias OpenClawAccessibilityService = MobileCroakerAccessibilityService

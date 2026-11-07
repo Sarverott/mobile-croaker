@@ -30,10 +30,10 @@
         </activity>
 
         <service
-            android:name=".accessibility.OpenClawAccessibilityService"
+            android:name=".accessibility.MobileCroakerAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true"
-            android:label="OpenClaw Automation Service">
+            android:label="Mobile Croaker Automation Service">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
