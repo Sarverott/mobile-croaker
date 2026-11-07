@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Mobile Croaker Pyodide Sandbox Runner</title>
+    <!-- Pyodide WebAssembly runtime CDN -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <script>
+        window.pyodideReady = false;
+
+        function postConsoleLog(level, msg) {
+            if (window.MobileCroaker && typeof window.MobileCroaker.logMessage === 'function') {
+                window.MobileCroaker.logMessage(level, msg);
+            } else {
+                console.log('[' + level + '] ' + msg);
+            }
+        }
+
+        function b64DecodeUtf8(str) {
+            try {
+                return decodeURIComponent(escape(window.atob(str)));
+            } catch (e) {
+                return window.atob(str);
+            }
+        }
+
+        async function initPyodideRuntime() {
+            try {
+                postConsoleLog('info', 'Initializing Pyodide WebAssembly sandbox...');
+                window.pyodide = await loadPyodide();
+                window.pyodideReady = true;
+                postConsoleLog('info', 'Pyodide ready! Python 3.12 active in secure sandbox.');
+            } catch (e) {
+                postConsoleLog('warn', 'Pyodide initialization warning (offline or CDN blocked): ' + e.message);
+            }
+        }
+
+        window.runPythonBase64 = async function(b64Code) {
+            try {
+                postConsoleLog('info', 'Executing Python script...');
+                if (!window.pyodideReady) {
+                    postConsoleLog('warn', 'Pyodide not yet initialized. Loading runtime...');
+                    await initPyodideRuntime();
+                }
+                const code = b64DecodeUtf8(b64Code);
+                await window.pyodide.runPythonAsync(code);
+                postConsoleLog('info', 'Python script execution finished.');
+            } catch (e) {
+                postConsoleLog('error', 'Python Error: ' + e.message);
+            }
+        };
+
+        window.runJsBase64 = async function(b64Code) {
+            try {
+                postConsoleLog('info', 'Executing JavaScript script...');
+                const code = b64DecodeUtf8(b64Code);
+                const asyncFn = new Function('MobileCroaker', 'postConsoleLog', `
+                    return (async () => {
+                        ${code}
+                    })();
+                `);
+                await asyncFn(window.MobileCroaker, postConsoleLog);
+                postConsoleLog('info', 'JavaScript execution finished.');
+            } catch (e) {
+                postConsoleLog('error', 'JavaScript Error: ' + e.message);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', initPyodideRuntime);
+    </script>
+</head>
+<body>
+    <div id="status">Mobile Croaker Sandbox Running</div>
+</body>
+</html>

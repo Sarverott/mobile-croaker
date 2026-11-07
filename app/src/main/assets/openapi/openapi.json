@@ -1,0 +1,312 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mobile Croaker / RAUSON API",
+    "version": "1.0.0",
+    "description": "OpenAPI specification for Mobile Croaker (RavensArmy User Simulating Operational Node). Built by Inceptorium Apokryf (apokryf.pl). Inspired by project OpenClaw."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8080",
+      "description": "Local Device HTTP Gateway"
+    }
+  ],
+  "paths": {
+    "/api/v1/status": {
+      "get": {
+        "summary": "Device Status & Telemetry",
+        "description": "Returns battery, memory, Android version, active service status, and local endpoints.",
+        "responses": {
+          "200": {
+            "description": "Telemetry status object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hierarchy": {
+      "get": {
+        "summary": "Dump UI Hierarchy",
+        "description": "Dumps interactive accessibility node tree of the current active window.",
+        "responses": {
+          "200": {
+            "description": "Hierarchy JSON structure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HierarchyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/action/tap": {
+      "post": {
+        "summary": "Execute Tap with 4-Tier Fallback",
+        "description": "Taps an element by View ID, Text, Description, or (x, y) coordinates.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/action/type": {
+      "post": {
+        "summary": "Input Text",
+        "description": "Inputs text into target field or active focus.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TypeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/action/swipe": {
+      "post": {
+        "summary": "Execute Swipe Gesture",
+        "description": "Performs swipe from (startX, startY) to (endX, endY).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwipeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/adb/shell": {
+      "post": {
+        "summary": "Execute ADB Shell Command",
+        "description": "Executes shell command via local ADB bridge client.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShellRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Shell execution output",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShellResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "Model Context Protocol Endpoint",
+        "description": "JSON-RPC 2.0 tool server endpoint supporting tools/list, tools/call, and initialize.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC 2.0 Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stream/info": {
+      "get": {
+        "summary": "Streaming Info",
+        "description": "Provides RTSP and MJPEG camera and screen streaming endpoints.",
+        "responses": {
+          "200": {
+            "description": "Streaming configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string" },
+          "version": { "type": "string" },
+          "deviceModel": { "type": "string" },
+          "androidRelease": { "type": "string" },
+          "accessibilityActive": { "type": "boolean" },
+          "adbConnected": { "type": "boolean" },
+          "serverPort": { "type": "integer" }
+        }
+      },
+      "HierarchyResponse": {
+        "type": "object",
+        "properties": {
+          "windowTitle": { "type": "string" },
+          "packageName": { "type": "string" },
+          "nodes": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "TapRequest": {
+        "type": "object",
+        "properties": {
+          "target": { "type": "string", "description": "View ID, text or content description" },
+          "x": { "type": "number", "description": "Optional X coordinate" },
+          "y": { "type": "number", "description": "Optional Y coordinate" }
+        }
+      },
+      "TypeRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "target": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      },
+      "SwipeRequest": {
+        "type": "object",
+        "required": ["startX", "startY", "endX", "endY"],
+        "properties": {
+          "startX": { "type": "number" },
+          "startY": { "type": "number" },
+          "endX": { "type": "number" },
+          "endY": { "type": "number" },
+          "durationMs": { "type": "integer", "default": 350 }
+        }
+      },
+      "ShellRequest": {
+        "type": "object",
+        "required": ["command"],
+        "properties": {
+          "command": { "type": "string" }
+        }
+      },
+      "ShellResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "exitCode": { "type": "integer" },
+          "output": { "type": "string" },
+          "latencyMs": { "type": "integer" }
+        }
+      },
+      "ActionResult": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "tier": { "type": "string" }
+        }
+      },
+      "McpRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "method", "id"],
+        "properties": {
+          "jsonrpc": { "type": "string", "example": "2.0" },
+          "method": { "type": "string" },
+          "params": { "type": "object" },
+          "id": { "oneOf": [{ "type": "string" }, { "type": "integer" }] }
+        }
+      },
+      "McpResponse": {
+        "type": "object",
+        "properties": {
+          "jsonrpc": { "type": "string", "example": "2.0" },
+          "result": { "type": "object" },
+          "error": { "type": "object" },
+          "id": { "oneOf": [{ "type": "string" }, { "type": "integer" }] }
+        }
+      },
+      "StreamInfoResponse": {
+        "type": "object",
+        "properties": {
+          "rtspStreamUrl": { "type": "string" },
+          "mjpegPreviewUrl": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    }
+  }
+}
