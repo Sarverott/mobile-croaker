@@ -2,6 +2,10 @@
 
 version: '3'
 
+includes:
+  devops: ./scripts/devops/Taskfile.yml
+  docs: ./docs/Taskfile.yml
+
 vars:
   PROJECT_NAME: "Mobile Croaker"
   SCOPE: "RAUSON (RavensArmy User Simulating Operational Node)"
@@ -34,7 +38,12 @@ tasks:
   release:
     desc: Build signed release APK artifact
     cmds:
-      - ./gradlew assembleRelease
+      - task: devops:build
+
+  package:
+    desc: Package release APK
+    cmds:
+      - task: devops:package
 
   clean:
     desc: Clean build artifacts and Gradle caches

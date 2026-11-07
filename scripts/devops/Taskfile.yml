@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+tasks:
+  determine-version:
+    desc: Determine release version and tag name
+    cmds:
+      - bash scripts/devops/determine_version.sh
+
+  setup-signing:
+    desc: Configure keystore signing environment
+    cmds:
+      - bash scripts/devops/setup_signing.sh
+
+  build:
+    desc: Build Release APK via dedicated script
+    cmds:
+      - bash scripts/devops/build_apk.sh
+
+  package:
+    desc: Package release APK into release_assets
+    cmds:
+      - bash scripts/devops/package_release.sh
+
+  check-notes:
+    desc: Check release notes documentation
+    cmds:
+      - bash scripts/devops/check_release_notes.sh
+
+  tag:
+    desc: Tag git release version
+    cmds:
+      - bash scripts/devops/create_tag.sh
