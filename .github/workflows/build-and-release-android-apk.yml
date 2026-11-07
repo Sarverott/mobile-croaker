@@ -1,0 +1,135 @@
+# COPY OF PREVIOUSLY CODED GITHUB WORKFLOW 
+# SOURCE: https://raw.githubusercontent.com/Sarverott/juststreamsound/refs/heads/main/.github/workflows/android.yml
+
+name: Build & Publish Release APK
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determine Release Version & Tag
+        id: version_step
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+            TAG_NAME="$RAW_TAG"
+            VERSION="${RAW_TAG#v}"
+          elif [ -f "package.json" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+            TAG_NAME="v$VERSION"
+          else
+            VERSION="1.0.0"
+            TAG_NAME="v$VERSION"
+          fi
+          
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "Detected version: $VERSION (Tag: $TAG_NAME)"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Configure Keystore Signing
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Using base64 keystore from secrets..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$GITHUB_WORKSPACE/my-upload-key.jks"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          elif [ -f "debug.keystore.base64" ]; then
+            echo "Decoding repository debug.keystore.base64 for release signing..."
+            base64 -d debug.keystore.base64 > "$GITHUB_WORKSPACE/my-upload-key.jks"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          else
+            echo "Generating fallback self-signed upload keystore..."
+            keytool -genkey -v -keystore "$GITHUB_WORKSPACE/my-upload-key.jks" \
+              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "android" -keypass "android" \
+              -dname "CN=JustStreamSound, O=Android, C=US"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          fi
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Package Release APK
+        id: prepare_apk
+        run: |
+          mkdir -p release_assets
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
+            OUTPUT_NAME="release_assets/JustStreamSound-${{ env.TAG_NAME }}.apk"
+            cp "$APK_PATH" "$OUTPUT_NAME"
+            echo "apk_path=$OUTPUT_NAME" >> $GITHUB_OUTPUT
+            echo "Packaged APK: $OUTPUT_NAME"
+          else
+            echo "Error: No release APK found in app/build/outputs/apk/release"
+            exit 1
+          fi
+
+      - name: Check for Release Notes
+        id: release_notes
+        run: |
+          if [ -f "docs/LATEST_RELEASE.md" ]; then
+            echo "notes_file=docs/LATEST_RELEASE.md" >> $GITHUB_OUTPUT
+          else
+            echo "notes_file=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Git Tag if Not Exists
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git rev-parse "${{ env.TAG_NAME }}" >/dev/null 2>&1; then
+            echo "Creating tag ${{ env.TAG_NAME }}..."
+            git tag -a "${{ env.TAG_NAME }}" -m "Release ${{ env.TAG_NAME }}"
+            git push origin "${{ env.TAG_NAME }}" || echo "Tag push skipped or already exists remotely"
+          else
+            echo "Tag ${{ env.TAG_NAME }} already exists."
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "Release ${{ env.TAG_NAME }}"
+          body_path: ${{ steps.release_notes.outputs.notes_file }}
+          files: ${{ steps.prepare_apk.outputs.apk_path }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
