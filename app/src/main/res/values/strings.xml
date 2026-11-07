@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">OpenClaw Agent</string>
+    <string name="accessibility_service_desc">OpenClaw Autonomous Workspace Service enables autonomous interface navigation, view hierarchy inspection, and gesture automation across apps on non-rooted devices.</string>
+</resources>
