@@ -41,6 +41,8 @@ enum class AppTab(val label: String) {
     FLEET_ADB("Fleet ADB"),
     TELEMETRY("Rsyslog"),
     IDENTITY("Identity"),
+    HARDWARE("Hardware"),
+    SETTINGS("Settings"),
     DIAGNOSTICS("Audit & Info")
 }
 

@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">Mobile Croaker</string>
+    <string name="accessibility_service_desc">Mobile Croaker Autonomous Workspace Service (RAUSON Node by Inceptorium Apokryf) enables autonomous interface navigation, view hierarchy inspection, and gesture automation across apps on non-rooted devices.</string>
+
+    <!-- Navigation & Tabs -->
+    <string name="tab_workspace">Workspace</string>
+    <string name="tab_scenarios">YAML Scenarios</string>
+    <string name="tab_llm_agent">LLM Agent</string>
+    <string name="tab_script_lab">Script Lab</string>
+    <string name="tab_integrations">Hardware</string>
+    <string name="tab_http_mcp">OpenAPI / MCP</string>
+    <string name="tab_identity">Identity</string>
+    <string name="tab_settings">Settings</string>
+    <string name="tab_audit">Audit</string>
+
+    <!-- General Actions -->
+    <string name="action_save">Save Changes</string>
+    <string name="action_reset">Reset to Defaults</string>
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_execute">Execute</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_paste">Paste</string>
+    <string name="action_refresh">Refresh</string>
+
+    <!-- Settings Labels -->
+    <string name="settings_title">SYSTEM CONFIGURATION</string>
+    <string name="settings_server_port">Gateway Server Port</string>
+    <string name="settings_llm_url">LLM Server URL</string>
+    <string name="settings_llm_model">Model Identifier</string>
+    <string name="settings_llm_temp">Sampling Temperature</string>
+    <string name="settings_rsyslog_host">Rsyslog Server Host</string>
+    <string name="settings_rsyslog_port">Rsyslog Server Port</string>
+    <string name="settings_fallback_tier">Preferred Fallback Tier</string>
+    <string name="settings_fast_clipboard">Fast Clipboard Typing Mode</string>
+    <string name="settings_node_callsign">Node Callsign</string>
+    <string name="settings_operator_name">Operator Identity</string>
+    <string name="settings_language">System Language</string>
+
+    <!-- Hardware & Integrations Labels -->
+    <string name="hardware_title">HARDWARE &amp; SYSTEM INTEGRATIONS</string>
+    <string name="hardware_torch">Torch / Flashlight</string>
+    <string name="hardware_audio">Audio &amp; Speakerphone</string>
+    <string name="hardware_clipboard">System Clipboard</string>
+    <string name="hardware_buttons">Physical Buttons &amp; Keys</string>
+    <string name="hardware_telephony">Telephony &amp; SMS</string>
+    <string name="hardware_sensors">Sensors &amp; Connectivity</string>
+    <string name="hardware_haptics">Haptics &amp; Vibrations</string>
+</resources>
