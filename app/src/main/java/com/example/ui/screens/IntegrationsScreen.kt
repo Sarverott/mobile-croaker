@@ -43,6 +43,11 @@ import com.example.ui.theme.TerminalMuted
 import com.example.ui.theme.TerminalSurface
 import com.example.ui.theme.TerminalWhite
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
 @Composable
 fun IntegrationsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -54,9 +59,17 @@ fun IntegrationsScreen(modifier: Modifier = Modifier) {
     var newClipInput by remember { mutableStateOf("") }
     var smsAddress by remember { mutableStateOf("") }
     var smsMessage by remember { mutableStateOf("") }
-    var locationInfo by remember { mutableStateOf(hw.getLastKnownLocation().toString(2)) }
-    var wifiInfo by remember { mutableStateOf(hw.getWifiStatus().toString(2)) }
-    var btInfo by remember { mutableStateOf(hw.getBluetoothStatus().toString(2)) }
+    var locationInfo by remember { mutableStateOf(try { hw.getLastKnownLocation().toString(2) } catch (_: Throwable) { "{}" }) }
+    var wifiInfo by remember { mutableStateOf(try { hw.getWifiStatus().toString(2) } catch (_: Throwable) { "{}" }) }
+    var btInfo by remember { mutableStateOf(try { hw.getBluetoothStatus().toString(2) } catch (_: Throwable) { "{}" }) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        wifiInfo = try { hw.getWifiStatus().toString(2) } catch (_: Throwable) { "{}" }
+        btInfo = try { hw.getBluetoothStatus().toString(2) } catch (_: Throwable) { "{}" }
+        locationInfo = try { hw.getLastKnownLocation().toString(2) } catch (_: Throwable) { "{}" }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -88,6 +101,34 @@ fun IntegrationsScreen(modifier: Modifier = Modifier) {
                         color = TerminalMuted,
                         modifier = Modifier.padding(top = 4.dp)
                     )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = {
+                            val perms = buildList {
+                                add(Manifest.permission.ACCESS_FINE_LOCATION)
+                                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    add(Manifest.permission.BLUETOOTH_CONNECT)
+                                    add(Manifest.permission.BLUETOOTH_SCAN)
+                                }
+                                add(Manifest.permission.CAMERA)
+                                add(Manifest.permission.READ_CONTACTS)
+                                add(Manifest.permission.SEND_SMS)
+                            }.toTypedArray()
+                            permissionLauncher.launch(perms)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF252A30)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "GRANT PERMISSIONS (BT / GPS / CAMERA / SMS)",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            color = StatusGreen
+                        )
+                    }
                 }
             }
         }

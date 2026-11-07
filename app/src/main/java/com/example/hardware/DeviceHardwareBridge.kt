@@ -90,21 +90,60 @@ class DeviceHardwareBridge(private val context: Context) {
         val json = JSONObject()
         val adapter = bluetoothAdapter
         json.put("available", adapter != null)
-        json.put("enabled", adapter?.isEnabled == true)
-        json.put("name", adapter?.name ?: "Unknown")
 
-        val bondedList = JSONArray()
+        if (adapter == null) {
+            json.put("enabled", false)
+            json.put("name", "No Bluetooth Adapter")
+            json.put("bondedDevices", JSONArray())
+            return json
+        }
+
         try {
-            adapter?.bondedDevices?.forEach { device ->
-                val devObj = JSONObject().apply {
-                    put("name", device.name ?: "Unnamed")
-                    put("address", device.address)
-                    put("type", device.type)
+            // Check Android 12+ (API 31+) BLUETOOTH_CONNECT runtime permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val hasConnectPerm = androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.BLUETOOTH_CONNECT
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                if (!hasConnectPerm) {
+                    json.put("enabled", false)
+                    json.put("name", "Permission Required (BLUETOOTH_CONNECT)")
+                    json.put("permissionRequired", true)
+                    json.put("bondedDevices", JSONArray())
+                    return json
                 }
-                bondedList.put(devObj)
             }
-        } catch (_: Exception) {}
-        json.put("bondedDevices", bondedList)
+
+            json.put("enabled", try { adapter.isEnabled } catch (_: SecurityException) { false })
+            json.put("name", try { adapter.name ?: "Unknown" } catch (_: SecurityException) { "Permission Required" })
+
+            val bondedList = JSONArray()
+            try {
+                adapter.bondedDevices?.forEach { device ->
+                    val devObj = JSONObject().apply {
+                        put("name", try { device.name ?: "Unnamed" } catch (_: SecurityException) { "Device" })
+                        put("address", device.address)
+                        put("type", device.type)
+                    }
+                    bondedList.put(devObj)
+                }
+            } catch (e: SecurityException) {
+                Log.w(TAG, "BLUETOOTH_CONNECT required for bondedDevices: ${e.message}")
+            }
+            json.put("bondedDevices", bondedList)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Bluetooth SecurityException handled gracefully", e)
+            json.put("enabled", false)
+            json.put("name", "Permission Required")
+            json.put("permissionRequired", true)
+            json.put("bondedDevices", JSONArray())
+        } catch (e: Throwable) {
+            Log.e(TAG, "Unexpected Bluetooth inspection error", e)
+            json.put("enabled", false)
+            json.put("name", "Unavailable")
+            json.put("bondedDevices", JSONArray())
+        }
         return json
     }
 
@@ -117,15 +156,15 @@ class DeviceHardwareBridge(private val context: Context) {
         val json = JSONObject()
         val wifi = wifiManager
         json.put("available", wifi != null)
-        json.put("enabled", wifi?.isWifiEnabled == true)
 
         try {
-            val info = wifi?.connectionInfo
+            json.put("enabled", try { wifi?.isWifiEnabled == true } catch (_: SecurityException) { false })
+            val info = try { wifi?.connectionInfo } catch (_: SecurityException) { null }
             json.put("ssid", info?.ssid ?: "")
             json.put("bssid", info?.bssid ?: "")
             json.put("rssi", info?.rssi ?: 0)
             json.put("linkSpeedMbps", info?.linkSpeed ?: 0)
-        } catch (_: Exception) {}
+        } catch (_: Throwable) {}
         return json
     }
 
