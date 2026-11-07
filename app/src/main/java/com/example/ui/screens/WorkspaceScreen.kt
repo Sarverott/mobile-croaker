@@ -275,10 +275,17 @@ fun ServiceStatusBanner(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (isServiceConnected)
-                    "Inspecting foreground app: $foregroundPackage • Non-rooted sandbox active."
+                    "Inspecting foreground app: $foregroundPackage • Non-rooted RAUSON node active."
                 else
-                    "Grant OpenClaw Accessibility Service permission to enable autonomous cross-app UI navigation & gesture dispatch.",
+                    "Grant Mobile Croaker Accessibility Service permission to enable autonomous cross-app UI navigation & gesture dispatch.",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Inspired by project OpenClaw (github.com/openclaw/openclaw) • Created by Inceptorium Apokryf (apokryf.pl)",
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

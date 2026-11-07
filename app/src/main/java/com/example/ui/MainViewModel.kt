@@ -6,30 +6,42 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.accessibility.OpenClawAccessibilityService
+import com.example.accessibility.MobileCroakerAccessibilityService
 import com.example.agent.AgentActionEngine
+import com.example.agent.YamlScenarioManager
 import com.example.bridge.AdbBridgeClient
 import com.example.bridge.AdbCommandResult
+import com.example.identity.IdentityFormat
+import com.example.identity.PhoneIdentity
+import com.example.identity.PhoneIdentityManager
+import com.example.llm.LlmAgentConfig
+import com.example.llm.LlmStepLog
+import com.example.llm.OpenAiLlmAgent
 import com.example.model.ActionResult
 import com.example.model.AgentWorkflow
 import com.example.model.RemoteDevice
 import com.example.model.SyslogEntry
 import com.example.model.UiNode
+import com.example.scripting.PyodideScriptEngine
+import com.example.scripting.ScriptOutput
+import com.example.server.MobileCroakerHttpServer
 import com.example.telemetry.RsyslogClient
 import com.example.telemetry.RsyslogConfig
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class AppTab(val label: String) {
-    WORKSPACE("Workspace"),
-    INSPECTOR("Inspector"),
-    FLEET_ADB("Fleet & ADB"),
-    TELEMETRY("Rsyslog TLS"),
-    DIAGNOSTICS("OS Audit")
+    WORKSPACE("Agent"),
+    YAML_SCENARIO("Scenarios"),
+    LLM_AGENT("LLM Goal"),
+    SCRIPT_LAB("Script Lab"),
+    HTTP_MCP("Server & MCP"),
+    FLEET_ADB("Fleet ADB"),
+    TELEMETRY("Rsyslog"),
+    IDENTITY("Identity"),
+    DIAGNOSTICS("Audit & Info")
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -37,18 +49,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val agentEngine = AgentActionEngine.getInstance(application)
     private val rsyslogClient = RsyslogClient.instance
     private val adbBridge = AdbBridgeClient.instance
+    private val httpServer = MobileCroakerHttpServer.getInstance(application)
+    private val llmAgent = OpenAiLlmAgent.getInstance(application)
+    val scriptEngine = PyodideScriptEngine(application, viewModelScope)
 
     // Current navigation tab
     private val _currentTab = MutableStateFlow(AppTab.WORKSPACE)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
 
     // Accessibility state
-    val isServiceConnected: StateFlow<Boolean> = OpenClawAccessibilityService.isServiceConnected
-    val foregroundPackage: StateFlow<String> = OpenClawAccessibilityService.currentForegroundPackage
-    val activityClass: StateFlow<String> = OpenClawAccessibilityService.currentActivityClass
-    val isSystemAlertDetected: StateFlow<Boolean> = OpenClawAccessibilityService.isSystemAlertDetected
-    val lastAlertMessage: StateFlow<String?> = OpenClawAccessibilityService.lastAlertMessage
-    val eventCount: StateFlow<Long> = OpenClawAccessibilityService.eventCounter
+    val isServiceConnected: StateFlow<Boolean> = MobileCroakerAccessibilityService.isServiceConnected
+    val foregroundPackage: StateFlow<String> = MobileCroakerAccessibilityService.currentForegroundPackage
+    val activityClass: StateFlow<String> = MobileCroakerAccessibilityService.currentActivityClass
+    val isSystemAlertDetected: StateFlow<Boolean> = MobileCroakerAccessibilityService.isSystemAlertDetected
+    val lastAlertMessage: StateFlow<String?> = MobileCroakerAccessibilityService.lastAlertMessage
+    val eventCount: StateFlow<Long> = MobileCroakerAccessibilityService.eventCounter
 
     // Agent Engine state
     val activeWorkflow: StateFlow<AgentWorkflow?> = agentEngine.activeWorkflow
@@ -68,6 +83,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val selectedDeviceId: StateFlow<String> = adbBridge.selectedDeviceId
     val adbHistory: StateFlow<List<AdbCommandResult>> = adbBridge.commandHistory
 
+    // HTTP & MCP Server state
+    val isHttpServerRunning: StateFlow<Boolean> = httpServer.isRunning
+    val httpServerUrl: StateFlow<String> = httpServer.serverUrl
+    val httpRequestCount: StateFlow<Long> = httpServer.requestCount
+
+    // LLM Agent state
+    val llmConfig: StateFlow<LlmAgentConfig> = llmAgent.config
+    val isLlmThinking: StateFlow<Boolean> = llmAgent.isAgentThinking
+    val llmLogs: StateFlow<List<LlmStepLog>> = llmAgent.executionLogs
+
+    // Phone Identity state
+    private val _phoneIdentity = MutableStateFlow(PhoneIdentity())
+    val phoneIdentity: StateFlow<PhoneIdentity> = _phoneIdentity.asStateFlow()
+
+    // Scripting state
+    val scriptLogs: StateFlow<List<ScriptOutput>> = scriptEngine.consoleLogs
+    val isScriptExecuting: StateFlow<Boolean> = scriptEngine.isExecuting
+
     // Hierarchy Inspector state
     private val _currentHierarchy = MutableStateFlow<UiNode?>(null)
     val currentHierarchy: StateFlow<UiNode?> = _currentHierarchy.asStateFlow()
@@ -79,7 +112,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val userFeedbackMessage: StateFlow<String?> = _userFeedbackMessage.asStateFlow()
 
     init {
-        // Auto-select first workflow
         if (workflowLibrary.value.isNotEmpty()) {
             agentEngine.selectWorkflow(workflowLibrary.value[0])
         }
@@ -87,9 +119,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectTab(tab: AppTab) {
         _currentTab.value = tab
-        if (tab == AppTab.INSPECTOR) {
-            refreshHierarchy()
-        }
     }
 
     fun openAccessibilitySettings(context: Context) {
@@ -99,7 +128,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            _userFeedbackMessage.value = "Unable to open Accessibility Settings: ${e.message}"
+            _userFeedbackMessage.value = "Unable to open Settings: ${e.message}"
         }
     }
 
@@ -116,87 +145,98 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun autoResolveSystemDialog() {
-        val success = OpenClawAccessibilityService.instance?.autoResolveSystemDialog() ?: false
-        _userFeedbackMessage.value = if (success) "System dialog resolved successfully" else "No matching dismiss button found"
+        val success = MobileCroakerAccessibilityService.instance?.autoResolveSystemDialog() ?: false
+        _userFeedbackMessage.value = if (success) "System dialog resolved" else "No matching dismiss button found"
     }
 
-    fun refreshHierarchy() {
-        val service = OpenClawAccessibilityService.instance
-        if (service != null) {
-            _currentHierarchy.value = service.dumpCurrentHierarchy()
-            _userFeedbackMessage.value = "Node hierarchy refreshed"
+    // YAML Scenario Management
+    fun importYamlScenario(yamlContent: String) {
+        val parsed = YamlScenarioManager.fromYaml(yamlContent)
+        if (parsed.isSuccess) {
+            val wf = parsed.getOrThrow()
+            agentEngine.selectWorkflow(wf)
+            _userFeedbackMessage.value = "Imported YAML scenario: ${wf.title}"
         } else {
-            // Emulate placeholder root node when service is waiting for user activation
-            _currentHierarchy.value = UiNode(
-                id = "root-demo",
-                viewIdResourceName = "android:id/content",
-                text = "OpenClaw Active Workspace",
-                contentDescription = "Autonomous workspace container",
-                className = "android.widget.FrameLayout",
-                packageName = foregroundPackage.value,
-                bounds = android.graphics.Rect(0, 0, 1080, 2400),
-                isClickable = false,
-                isEditable = false,
-                isScrollable = false,
-                isVisibleToUser = true,
-                isEnabled = true,
-                children = listOf(
-                    UiNode(
-                        id = "node-1",
-                        viewIdResourceName = "com.example:id/start_agent_btn",
-                        text = "Start Autonomous Task",
-                        contentDescription = "Primary action trigger",
-                        className = "android.widget.Button",
-                        packageName = "com.example",
-                        bounds = android.graphics.Rect(120, 400, 960, 560),
-                        isClickable = true,
-                        isEditable = false,
-                        isScrollable = false,
-                        isVisibleToUser = true,
-                        isEnabled = true
-                    ),
-                    UiNode(
-                        id = "node-2",
-                        viewIdResourceName = "com.example:id/search_input",
-                        text = "Search external app elements",
-                        contentDescription = "Query input bar",
-                        className = "android.widget.EditText",
-                        packageName = "com.example",
-                        bounds = android.graphics.Rect(120, 600, 960, 740),
-                        isClickable = true,
-                        isEditable = true,
-                        isScrollable = false,
-                        isVisibleToUser = true,
-                        isEnabled = true
-                    )
-                )
-            )
+            _userFeedbackMessage.value = "YAML Parse error: ${parsed.exceptionOrNull()?.message}"
         }
     }
 
-    fun setNodeSearchQuery(query: String) {
-        _nodeSearchQuery.value = query
+    fun exportCurrentWorkflowToYaml(): String {
+        val wf = activeWorkflow.value ?: return "# No workflow selected"
+        return YamlScenarioManager.toYaml(wf)
     }
 
-    fun testTapNode(node: UiNode) {
-        val service = OpenClawAccessibilityService.instance
-        if (service != null) {
-            val clicked = service.clickNode(text = node.text, viewId = node.viewIdResourceName)
-            _userFeedbackMessage.value = if (clicked) "Node tapped via Tier 1" else "Node tap failed, tried Tier 2"
+    // HTTP Server controls
+    fun toggleHttpServer(port: Int = 8080) {
+        if (isHttpServerRunning.value) {
+            httpServer.stopServer()
+            _userFeedbackMessage.value = "HTTP & MCP Server stopped."
         } else {
-            viewModelScope.launch {
-                val res = adbBridge.fallbackTap(node.centerX, node.centerY)
-                _userFeedbackMessage.value = "Simulated ADB tap at (${node.centerX.toInt()}, ${node.centerY.toInt()}): ${res.output}"
+            httpServer.startServer(port)
+            _userFeedbackMessage.value = "Server active on port $port"
+        }
+    }
+
+    // LLM controls
+    fun updateLlmConfig(config: LlmAgentConfig) {
+        llmAgent.updateConfig(config)
+        _userFeedbackMessage.value = "Updated LLM configuration for ${config.modelName}"
+    }
+
+    fun runLlmGoal(goal: String) {
+        viewModelScope.launch {
+            _userFeedbackMessage.value = "Starting LLM Goal: $goal"
+            val success = llmAgent.executeGoal(goal) { progress ->
+                _userFeedbackMessage.value = progress
             }
+            _userFeedbackMessage.value = if (success) "LLM goal execution finished successfully!" else "LLM goal aborted."
         }
     }
 
+    // Identity export / import
+    fun updateIdentity(identity: PhoneIdentity) {
+        _phoneIdentity.value = identity
+        _userFeedbackMessage.value = "Identity profile updated: ${identity.callsign}"
+    }
+
+    fun exportIdentity(format: IdentityFormat): String {
+        return PhoneIdentityManager.export(_phoneIdentity.value, format)
+    }
+
+    fun importIdentity(content: String, format: IdentityFormat) {
+        val result = PhoneIdentityManager.import(content, format)
+        if (result.isSuccess) {
+            _phoneIdentity.value = result.getOrThrow()
+            _userFeedbackMessage.value = "Identity imported (${format.name}): ${_phoneIdentity.value.callsign}"
+        } else {
+            _userFeedbackMessage.value = "Failed to import identity: ${result.exceptionOrNull()?.message}"
+        }
+    }
+
+    // Scripting controls
+    fun runPythonScript(code: String) {
+        scriptEngine.executePython(code)
+    }
+
+    fun runJsScript(code: String) {
+        scriptEngine.executeJavaScript(code)
+    }
+
+    fun runShellScript(code: String) {
+        scriptEngine.executeShell(code)
+    }
+
+    fun clearScriptLogs() {
+        scriptEngine.clearLogs()
+    }
+
+    // Telemetry & ADB controls
     fun updateRsyslogConfig(config: RsyslogConfig) {
         rsyslogClient.updateConfig(config)
     }
 
     fun testRsyslogConnection() {
-        rsyslogClient.testConnection { success, message ->
+        rsyslogClient.testConnection { _, message ->
             _userFeedbackMessage.value = message
         }
     }
@@ -207,7 +247,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addRemoteDevice(name: String, ip: String, port: Int) {
         adbBridge.addDevice(name, ip, port)
-        _userFeedbackMessage.value = "Added device: $name ($ip:$port)"
+        _userFeedbackMessage.value = "Added worker: $name ($ip:$port)"
     }
 
     fun pingDevice(id: String) {
@@ -234,7 +274,63 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _userFeedbackMessage.value = "Deploying APK to ${targetDeviceIds.size} device(s)..."
             val results = adbBridge.deployApkToFleet(apkPath, targetDeviceIds)
             val successCount = results.count { it.isSuccess }
-            _userFeedbackMessage.value = "APK Deployment complete: $successCount / ${results.size} successful."
+            _userFeedbackMessage.value = "APK Deployment: $successCount / ${results.size} OK"
+        }
+    }
+
+    fun setNodeSearchQuery(query: String) {
+        _nodeSearchQuery.value = query
+    }
+
+    fun refreshHierarchy() {
+        val service = MobileCroakerAccessibilityService.instance
+        if (service != null) {
+            _currentHierarchy.value = service.dumpCurrentHierarchy()
+            _userFeedbackMessage.value = "Node hierarchy refreshed"
+        } else {
+            _currentHierarchy.value = UiNode(
+                id = "root-demo",
+                viewIdResourceName = "android:id/content",
+                text = "Mobile Croaker Active Workspace",
+                contentDescription = "Autonomous workspace container",
+                className = "android.widget.FrameLayout",
+                packageName = foregroundPackage.value,
+                bounds = android.graphics.Rect(0, 0, 1080, 2400),
+                isClickable = false,
+                isEditable = false,
+                isScrollable = false,
+                isVisibleToUser = true,
+                isEnabled = true,
+                children = listOf(
+                    UiNode(
+                        id = "node-1",
+                        viewIdResourceName = "com.example:id/start_agent_btn",
+                        text = "Start Autonomous Task",
+                        contentDescription = "Primary action trigger",
+                        className = "android.widget.Button",
+                        packageName = "com.example",
+                        bounds = android.graphics.Rect(120, 400, 960, 560),
+                        isClickable = true,
+                        isEditable = false,
+                        isScrollable = false,
+                        isVisibleToUser = true,
+                        isEnabled = true
+                    )
+                )
+            )
+        }
+    }
+
+    fun testTapNode(node: UiNode) {
+        val service = MobileCroakerAccessibilityService.instance
+        if (service != null) {
+            val clicked = service.clickNode(text = node.text, viewId = node.viewIdResourceName)
+            _userFeedbackMessage.value = if (clicked) "Node tapped via Tier 1" else "Node tap failed, tried Tier 2"
+        } else {
+            viewModelScope.launch {
+                val res = adbBridge.fallbackTap(node.centerX, node.centerY)
+                _userFeedbackMessage.value = "Simulated ADB tap at (${node.centerX.toInt()}, ${node.centerY.toInt()}): ${res.output}"
+            }
         }
     }
 

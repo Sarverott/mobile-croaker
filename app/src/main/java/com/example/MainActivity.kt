@@ -7,24 +7,37 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Http
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -55,12 +68,19 @@ import com.example.ui.MainViewModel
 import com.example.ui.screens.AuditCapabilitiesScreen
 import com.example.ui.screens.FleetAdbScreen
 import com.example.ui.screens.HierarchyInspectorScreen
+import com.example.ui.screens.HttpMcpScreen
+import com.example.ui.screens.IdentityScreen
+import com.example.ui.screens.LlmAgentScreen
+import com.example.ui.screens.ScriptLabScreen
 import com.example.ui.screens.TelemetryScreen
 import com.example.ui.screens.WorkspaceScreen
-import com.example.ui.theme.CriticalRed
-import com.example.ui.theme.CyberCyan
-import com.example.ui.theme.NeonEmerald
-import com.example.ui.theme.OpenClawTheme
+import com.example.ui.screens.YamlScenarioScreen
+import com.example.ui.theme.MobileCroakerTheme
+import com.example.ui.theme.StatusGreen
+import com.example.ui.theme.StatusRed
+import com.example.ui.theme.TerminalBorder
+import com.example.ui.theme.TerminalSurface
+import com.example.ui.theme.TerminalWhite
 
 class MainActivity : ComponentActivity() {
 
@@ -72,7 +92,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            OpenClawTheme {
+            MobileCroakerTheme {
                 val currentTab by viewModel.currentTab.collectAsState()
                 val isServiceConnected by viewModel.isServiceConnected.collectAsState()
                 val isAgentRunning by viewModel.isAgentRunning.collectAsState()
@@ -94,42 +114,86 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
-                        TopAppBar(
-                            title = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (isAgentRunning) CyberCyan
-                                                else if (isServiceConnected) NeonEmerald
-                                                else CriticalRed
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.background)
+                        ) {
+                            TopAppBar(
+                                title = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (isAgentRunning) TerminalWhite
+                                                    else if (isServiceConnected) StatusGreen
+                                                    else StatusRed
+                                                )
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Mobile Croaker",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 17.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = TerminalWhite
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = if (isAgentRunning) "RUNNING" else if (isServiceConnected) "ARMED" else "STANDBY",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isAgentRunning) TerminalWhite else if (isServiceConnected) StatusGreen else StatusRed
+                                        )
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.background
+                                )
+                            )
+
+                            // Quick Sub-Module Horizontal Scroll Ribbon
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                AppTab.values().forEach { tab ->
+                                    val isSelected = currentTab == tab
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { viewModel.selectTab(tab) },
+                                        label = {
+                                            Text(
+                                                text = tab.label,
+                                                fontSize = 11.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) Color.Black else TerminalWhite
                                             )
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "OpenClaw Agent",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (isAgentRunning) "RUNNING" else if (isServiceConnected) "ARMED" else "STANDBY",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isAgentRunning) CyberCyan else if (isServiceConnected) NeonEmerald else CriticalRed
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = TerminalWhite,
+                                            containerColor = TerminalSurface
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            borderColor = TerminalBorder,
+                                            selectedBorderColor = TerminalWhite,
+                                            enabled = true,
+                                            selected = isSelected
+                                        )
                                     )
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.background
-                            )
-                        )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
                     },
                     bottomBar = {
+                        // Standard Primary NavigationBar for core 5 destinations
                         NavigationBar(
                             modifier = Modifier
                                 .windowInsetsPadding(WindowInsets.navigationBars)
@@ -139,62 +203,62 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = currentTab == AppTab.WORKSPACE,
                                 onClick = { viewModel.selectTab(AppTab.WORKSPACE) },
-                                icon = { Icon(Icons.Default.PlayArrow, contentDescription = "Workspace") },
-                                label = { Text("Agent", fontSize = 11.sp) },
+                                icon = { Icon(Icons.Default.PlayArrow, contentDescription = "Agent") },
+                                label = { Text("Agent", fontSize = 10.sp) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = CyberCyan,
-                                    selectedTextColor = CyberCyan,
-                                    indicatorColor = CyberCyan.copy(alpha = 0.2f)
+                                    selectedIconColor = TerminalWhite,
+                                    selectedTextColor = TerminalWhite,
+                                    indicatorColor = TerminalWhite.copy(alpha = 0.2f)
                                 ),
                                 modifier = Modifier.testTag("nav_workspace")
                             )
                             NavigationBarItem(
-                                selected = currentTab == AppTab.INSPECTOR,
-                                onClick = { viewModel.selectTab(AppTab.INSPECTOR) },
-                                icon = { Icon(Icons.Default.AccountTree, contentDescription = "Inspector") },
-                                label = { Text("Inspect", fontSize = 11.sp) },
+                                selected = currentTab == AppTab.YAML_SCENARIO,
+                                onClick = { viewModel.selectTab(AppTab.YAML_SCENARIO) },
+                                icon = { Icon(Icons.Default.Code, contentDescription = "Scenarios") },
+                                label = { Text("YAML", fontSize = 10.sp) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = CyberCyan,
-                                    selectedTextColor = CyberCyan,
-                                    indicatorColor = CyberCyan.copy(alpha = 0.2f)
+                                    selectedIconColor = TerminalWhite,
+                                    selectedTextColor = TerminalWhite,
+                                    indicatorColor = TerminalWhite.copy(alpha = 0.2f)
                                 ),
-                                modifier = Modifier.testTag("nav_inspector")
+                                modifier = Modifier.testTag("nav_yaml")
                             )
                             NavigationBarItem(
-                                selected = currentTab == AppTab.FLEET_ADB,
-                                onClick = { viewModel.selectTab(AppTab.FLEET_ADB) },
-                                icon = { Icon(Icons.Default.Devices, contentDescription = "Fleet & ADB") },
-                                label = { Text("Fleet ADB", fontSize = 11.sp) },
+                                selected = currentTab == AppTab.LLM_AGENT,
+                                onClick = { viewModel.selectTab(AppTab.LLM_AGENT) },
+                                icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "LLM") },
+                                label = { Text("LLM Goal", fontSize = 10.sp) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = CyberCyan,
-                                    selectedTextColor = CyberCyan,
-                                    indicatorColor = CyberCyan.copy(alpha = 0.2f)
+                                    selectedIconColor = TerminalWhite,
+                                    selectedTextColor = TerminalWhite,
+                                    indicatorColor = TerminalWhite.copy(alpha = 0.2f)
                                 ),
-                                modifier = Modifier.testTag("nav_fleet")
+                                modifier = Modifier.testTag("nav_llm")
                             )
                             NavigationBarItem(
-                                selected = currentTab == AppTab.TELEMETRY,
-                                onClick = { viewModel.selectTab(AppTab.TELEMETRY) },
-                                icon = { Icon(Icons.Default.Security, contentDescription = "Rsyslog TLS") },
-                                label = { Text("Rsyslog", fontSize = 11.sp) },
+                                selected = currentTab == AppTab.SCRIPT_LAB,
+                                onClick = { viewModel.selectTab(AppTab.SCRIPT_LAB) },
+                                icon = { Icon(Icons.Default.Terminal, contentDescription = "Script Lab") },
+                                label = { Text("Pyodide", fontSize = 10.sp) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = CyberCyan,
-                                    selectedTextColor = CyberCyan,
-                                    indicatorColor = CyberCyan.copy(alpha = 0.2f)
+                                    selectedIconColor = TerminalWhite,
+                                    selectedTextColor = TerminalWhite,
+                                    indicatorColor = TerminalWhite.copy(alpha = 0.2f)
                                 ),
-                                modifier = Modifier.testTag("nav_telemetry")
+                                modifier = Modifier.testTag("nav_script")
                             )
                             NavigationBarItem(
-                                selected = currentTab == AppTab.DIAGNOSTICS,
-                                onClick = { viewModel.selectTab(AppTab.DIAGNOSTICS) },
-                                icon = { Icon(Icons.Default.Info, contentDescription = "OS Audit") },
-                                label = { Text("OS Audit", fontSize = 11.sp) },
+                                selected = currentTab == AppTab.HTTP_MCP,
+                                onClick = { viewModel.selectTab(AppTab.HTTP_MCP) },
+                                icon = { Icon(Icons.Default.Http, contentDescription = "Server & MCP") },
+                                label = { Text("MCP/REST", fontSize = 10.sp) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = CyberCyan,
-                                    selectedTextColor = CyberCyan,
-                                    indicatorColor = CyberCyan.copy(alpha = 0.2f)
+                                    selectedIconColor = TerminalWhite,
+                                    selectedTextColor = TerminalWhite,
+                                    indicatorColor = TerminalWhite.copy(alpha = 0.2f)
                                 ),
-                                modifier = Modifier.testTag("nav_diagnostics")
+                                modifier = Modifier.testTag("nav_mcp")
                             )
                         }
                     }
@@ -202,9 +266,13 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         when (currentTab) {
                             AppTab.WORKSPACE -> WorkspaceScreen(viewModel = viewModel)
-                            AppTab.INSPECTOR -> HierarchyInspectorScreen(viewModel = viewModel)
+                            AppTab.YAML_SCENARIO -> YamlScenarioScreen(viewModel = viewModel)
+                            AppTab.LLM_AGENT -> LlmAgentScreen(viewModel = viewModel)
+                            AppTab.SCRIPT_LAB -> ScriptLabScreen(viewModel = viewModel)
+                            AppTab.HTTP_MCP -> HttpMcpScreen(viewModel = viewModel)
                             AppTab.FLEET_ADB -> FleetAdbScreen(viewModel = viewModel)
                             AppTab.TELEMETRY -> TelemetryScreen(viewModel = viewModel)
+                            AppTab.IDENTITY -> IdentityScreen(viewModel = viewModel)
                             AppTab.DIAGNOSTICS -> AuditCapabilitiesScreen(viewModel = viewModel)
                         }
                     }
