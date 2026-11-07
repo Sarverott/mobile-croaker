@@ -1,0 +1,11 @@
+id: "scenario_hardware_audit"
+name: "Hardware Telemetry & Node Audit"
+version: 1
+target_package: "system"
+steps:
+  - id: "step_check_device"
+    action: "wait"
+    delay_ms: 300
+    validation:
+      type: "package_equals"
+      expected: "com.aistudio.openclaw.agent.qwmx"

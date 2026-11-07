@@ -70,8 +70,10 @@ import com.example.ui.screens.FleetAdbScreen
 import com.example.ui.screens.HierarchyInspectorScreen
 import com.example.ui.screens.HttpMcpScreen
 import com.example.ui.screens.IdentityScreen
+import com.example.ui.screens.IntegrationsScreen
 import com.example.ui.screens.LlmAgentScreen
 import com.example.ui.screens.ScriptLabScreen
+import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.TelemetryScreen
 import com.example.ui.screens.WorkspaceScreen
 import com.example.ui.screens.YamlScenarioScreen
@@ -273,6 +275,8 @@ class MainActivity : ComponentActivity() {
                             AppTab.FLEET_ADB -> FleetAdbScreen(viewModel = viewModel)
                             AppTab.TELEMETRY -> TelemetryScreen(viewModel = viewModel)
                             AppTab.IDENTITY -> IdentityScreen(viewModel = viewModel)
+                            AppTab.HARDWARE -> IntegrationsScreen()
+                            AppTab.SETTINGS -> SettingsScreen()
                             AppTab.DIAGNOSTICS -> AuditCapabilitiesScreen(viewModel = viewModel)
                         }
                     }

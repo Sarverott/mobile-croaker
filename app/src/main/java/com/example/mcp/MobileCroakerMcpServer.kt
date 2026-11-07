@@ -19,9 +19,13 @@ import org.json.JSONObject
  * Exposes the Android device workspace as an MCP tool provider for AI agents (Claude, OpenAI, Gemini, etc.).
  * Conforms to JSON-RPC 2.0 MCP Specification.
  */
+import com.example.hardware.DeviceHardwareBridge
+import android.media.AudioManager
+
 class MobileCroakerMcpServer(private val context: Context) {
 
     private val capacitorBridge = CapacitorBridgeWrapper(context)
+    private val hwBridge = DeviceHardwareBridge.getInstance(context)
 
     /**
      * Handles incoming MCP JSON-RPC 2.0 request.
@@ -139,6 +143,102 @@ class MobileCroakerMcpServer(private val context: Context) {
                     put("eventCount", MobileCroakerAccessibilityService.eventCounter.value)
                 }
                 toolTextResponse(status.toString())
+            }
+            "mobile_croaker_manage_clipboard" -> {
+                val action = args.optString("action", "get").lowercase()
+                if (action == "set") {
+                    val text = args.optString("text", "")
+                    val ok = hwBridge.setClipboardText("AgentClip", text)
+                    toolTextResponse("{\"success\": $ok, \"action\": \"set\", \"length\": ${text.length}}")
+                } else {
+                    val clipText = hwBridge.getClipboardText()
+                    val escaped = JSONObject().put("clipboardText", clipText).toString()
+                    toolTextResponse(escaped)
+                }
+            }
+            "mobile_croaker_hardware_control" -> {
+                val subsystem = args.optString("subsystem").lowercase()
+                when (subsystem) {
+                    "torch", "flashlight" -> {
+                        val state = args.optBoolean("enable", !hwBridge.isFlashlightOn())
+                        val ok = hwBridge.setFlashlight(state)
+                        toolTextResponse("{\"success\": $ok, \"subsystem\": \"torch\", \"enabled\": $state}")
+                    }
+                    "speakerphone" -> {
+                        val state = args.optBoolean("enable", true)
+                        val ok = hwBridge.setSpeakerphone(state)
+                        toolTextResponse("{\"success\": $ok, \"subsystem\": \"speakerphone\", \"enabled\": $state}")
+                    }
+                    "volume" -> {
+                        val direction = args.optInt("direction", AudioManager.ADJUST_SAME)
+                        val stream = args.optInt("stream", AudioManager.STREAM_MUSIC)
+                        val ok = hwBridge.adjustVolume(stream, direction)
+                        toolTextResponse("{\"success\": $ok, \"subsystem\": \"volume\", \"telemetry\": ${hwBridge.getAudioTelemetry()}}")
+                    }
+                    "bluetooth" -> {
+                        toolTextResponse(hwBridge.getBluetoothStatus().toString())
+                    }
+                    "wifi" -> {
+                        toolTextResponse(hwBridge.getWifiStatus().toString())
+                    }
+                    "location" -> {
+                        toolTextResponse(hwBridge.getLastKnownLocation().toString())
+                    }
+                    "vibrate" -> {
+                        val duration = args.optLong("durationMs", 300L)
+                        hwBridge.vibrate(duration)
+                        toolTextResponse("{\"success\": true, \"vibratedMs\": $duration}")
+                    }
+                    else -> {
+                        val allHw = JSONObject().apply {
+                            put("audio", hwBridge.getAudioTelemetry())
+                            put("wifi", hwBridge.getWifiStatus())
+                            put("bluetooth", hwBridge.getBluetoothStatus())
+                            put("torch", hwBridge.isFlashlightOn())
+                        }
+                        toolTextResponse(allHw.toString())
+                    }
+                }
+            }
+            "mobile_croaker_telephony_sms" -> {
+                val action = args.optString("action", "query_contacts").lowercase()
+                when (action) {
+                    "send_sms" -> {
+                        val address = args.optString("address", "")
+                        val text = args.optString("text", "")
+                        val ok = hwBridge.sendSms(address, text)
+                        toolTextResponse("{\"success\": $ok, \"action\": \"send_sms\", \"address\": \"$address\"}")
+                    }
+                    "dial_call" -> {
+                        val number = args.optString("number", "")
+                        val ok = hwBridge.dialCall(number)
+                        toolTextResponse("{\"success\": $ok, \"action\": \"dial_call\", \"number\": \"$number\"}")
+                    }
+                    "add_contact" -> {
+                        val name = args.optString("name", "New Contact")
+                        val number = args.optString("number", "")
+                        val ok = hwBridge.addContact(name, number)
+                        toolTextResponse("{\"success\": $ok, \"action\": \"add_contact\", \"name\": \"$name\"}")
+                    }
+                    else -> {
+                        val query = args.optString("query").takeIf { it.isNotBlank() }
+                        val limit = args.optInt("limit", 10)
+                        val contacts = hwBridge.queryContacts(query, limit)
+                        toolTextResponse(JSONObject().put("contacts", contacts).toString())
+                    }
+                }
+            }
+            "mobile_croaker_device_buttons" -> {
+                val action = args.optString("action").lowercase()
+                val ok = when (action) {
+                    "volume_up" -> hwBridge.adjustVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE)
+                    "volume_down" -> hwBridge.adjustVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER)
+                    "power_dialog" -> hwBridge.pressPowerDialog()
+                    "lock_screen" -> hwBridge.lockScreen()
+                    "screenshot", "take_screenshot" -> hwBridge.takeAccessibilityScreenshot()
+                    else -> false
+                }
+                toolTextResponse("{\"success\": $ok, \"action\": \"$action\"}")
             }
             else -> {
                 toolTextResponse("{\"error\": \"Unknown tool $name\"}")
@@ -259,9 +359,59 @@ class MobileCroakerMcpServer(private val context: Context) {
         ))
 
         array.put(createToolMeta(
-            "mobile_croaker_get_telemetry",
-            "Retrieves current device and accessibility telemetry state.",
-            JSONObject().put("type", "object").put("properties", JSONObject())
+            "mobile_croaker_manage_clipboard",
+            "Read or write system clipboard text for instant typing substitution.",
+            JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("action", JSONObject().put("type", "string").put("description", "'get' to read clipboard or 'set' to write"))
+                    put("text", JSONObject().put("type", "string").put("description", "Text to place on clipboard when action is 'set'"))
+                })
+            }
+        ))
+
+        array.put(createToolMeta(
+            "mobile_croaker_hardware_control",
+            "Control and query hardware subsystems: torch/flashlight, speakerphone, volume, bluetooth, wifi, location, and vibration.",
+            JSONObject().apply {
+                put("type", "object")
+                put("required", JSONArray().put("subsystem"))
+                put("properties", JSONObject().apply {
+                    put("subsystem", JSONObject().put("type", "string").put("description", "Subsystem: 'torch', 'speakerphone', 'volume', 'bluetooth', 'wifi', 'location', or 'vibrate'"))
+                    put("enable", JSONObject().put("type", "boolean").put("description", "State toggle for torch or speakerphone"))
+                    put("direction", JSONObject().put("type", "integer").put("description", "Volume adjustment (-1 down, 1 up, 0 status)"))
+                    put("durationMs", JSONObject().put("type", "integer").put("description", "Vibration duration in milliseconds"))
+                })
+            }
+        ))
+
+        array.put(createToolMeta(
+            "mobile_croaker_telephony_sms",
+            "Manage phone telephony, contacts, and SMS messaging.",
+            JSONObject().apply {
+                put("type", "object")
+                put("required", JSONArray().put("action"))
+                put("properties", JSONObject().apply {
+                    put("action", JSONObject().put("type", "string").put("description", "Action: 'send_sms', 'dial_call', 'query_contacts', or 'add_contact'"))
+                    put("address", JSONObject().put("type", "string").put("description", "Phone number for SMS"))
+                    put("text", JSONObject().put("type", "string").put("description", "Message text for SMS"))
+                    put("number", JSONObject().put("type", "string").put("description", "Phone number to dial"))
+                    put("name", JSONObject().put("type", "string").put("description", "Contact name"))
+                    put("query", JSONObject().put("type", "string").put("description", "Search query for contacts"))
+                })
+            }
+        ))
+
+        array.put(createToolMeta(
+            "mobile_croaker_device_buttons",
+            "Trigger hardware keys: volume up, volume down, power dialog, lock screen, and accessibility screenshot.",
+            JSONObject().apply {
+                put("type", "object")
+                put("required", JSONArray().put("action"))
+                put("properties", JSONObject().apply {
+                    put("action", JSONObject().put("type", "string").put("description", "Action: 'volume_up', 'volume_down', 'power_dialog', 'lock_screen', or 'screenshot'"))
+                })
+            }
         ))
 
         return array

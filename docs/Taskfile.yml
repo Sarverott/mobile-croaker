@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+tasks:
+  serve:
+    desc: Serve local documentation on port 8000
+    cmds:
+      - python3 -m http.server 8000 --directory docs
+
+  check:
+    desc: Verify documentation index and tutorial files exist
+    cmds:
+      - test -f docs/index.html && echo "docs/index.html OK"
+      - test -f docs/TUTORIAL.md && echo "docs/TUTORIAL.md OK"
+      - test -f docs/HARDWARE_INTEGRATIONS.md && echo "docs/HARDWARE_INTEGRATIONS.md OK"
+      - test -f docs/ARCHITECTURE.md && echo "docs/ARCHITECTURE.md OK"
+      - test -f docs/BOS_INTEGRATION.md && echo "docs/BOS_INTEGRATION.md OK"
+      - test -f docs/LATEST_RELEASE.md && echo "docs/LATEST_RELEASE.md OK"
