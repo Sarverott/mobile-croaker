@@ -11,66 +11,59 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = CyberCyan,
-    onPrimary = Color(0xFF003544),
-    primaryContainer = Color(0xFF004D63),
-    onPrimaryContainer = Color(0xFFBCE9FF),
-    secondary = ElectricBlue,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFF1E3A8A),
-    onSecondaryContainer = Color(0xFFDBEAFE),
-    tertiary = NeonEmerald,
-    onTertiary = Color(0xFF003822),
-    tertiaryContainer = Color(0xFF065F46),
-    onTertiaryContainer = Color(0xFFA7F3D0),
-    background = DarkBackground,
-    onBackground = Slate200,
-    surface = DarkSurface,
-    onSurface = Slate50,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = Slate400,
-    error = CriticalRed,
-    onError = Color.White
+private val TerminalDarkColorScheme = darkColorScheme(
+    primary = TerminalWhite,
+    onPrimary = TerminalBlack,
+    primaryContainer = TerminalSurfaceVariant,
+    onPrimaryContainer = TerminalWhite,
+    secondary = TerminalTextSecondary,
+    onSecondary = TerminalBlack,
+    secondaryContainer = TerminalSurface,
+    onSecondaryContainer = TerminalTextPrimary,
+    tertiary = StatusGreen,
+    onTertiary = TerminalBlack,
+    tertiaryContainer = Color(0xFF142918),
+    onTertiaryContainer = StatusGreen,
+    background = TerminalBackground,
+    onBackground = TerminalTextPrimary,
+    surface = TerminalSurface,
+    onSurface = TerminalTextPrimary,
+    surfaceVariant = TerminalSurfaceVariant,
+    onSurfaceVariant = TerminalTextSecondary,
+    outline = TerminalBorder,
+    outlineVariant = TerminalBorderLight,
+    error = StatusRed,
+    onError = TerminalWhite
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = CyberCyanMuted,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0F2FE),
-    onPrimaryContainer = Color(0xFF0369A1),
-    secondary = ElectricBlue,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDBEAFE),
-    onSecondaryContainer = Color(0xFF1E40AF),
-    tertiary = NeonEmerald,
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD1FAE5),
-    onTertiaryContainer = Color(0xFF047857),
-    background = LightBackground,
-    onBackground = Slate900,
-    surface = LightSurface,
-    onSurface = Slate900,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = Slate700,
-    error = CriticalRed,
-    onError = Color.White
+private val TerminalLightColorScheme = lightColorScheme(
+    primary = TerminalBlack,
+    onPrimary = TerminalWhite,
+    primaryContainer = Color(0xFFE5E5E5),
+    onPrimaryContainer = TerminalBlack,
+    secondary = Color(0xFF404040),
+    onSecondary = TerminalWhite,
+    secondaryContainer = Color(0xFFF5F5F5),
+    onSecondaryContainer = TerminalBlack,
+    tertiary = StatusGreen,
+    onTertiary = TerminalWhite,
+    background = Color(0xFFFAFAFA),
+    onBackground = TerminalBlack,
+    surface = TerminalWhite,
+    onSurface = TerminalBlack,
+    surfaceVariant = Color(0xFFE5E5E5),
+    onSurfaceVariant = Color(0xFF525252),
+    outline = Color(0xFFD4D4D4),
+    error = StatusRed,
+    onError = TerminalWhite
 )
 
 @Composable
-fun OpenClawTheme(
-    darkTheme: Boolean = true, // Default to sleek tech dark theme
-    dynamicColor: Boolean = false, // Keep branded cyber aesthetic
+fun MobileCroakerTheme(
+    darkTheme: Boolean = true, // Default to terminal dark
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) TerminalDarkColorScheme else TerminalLightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
@@ -78,3 +71,11 @@ fun OpenClawTheme(
         content = content
     )
 }
+
+// Backward compatibility alias
+@Composable
+fun OpenClawTheme(
+    darkTheme: Boolean = true,
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit
+) = MobileCroakerTheme(darkTheme = darkTheme, content = content)
