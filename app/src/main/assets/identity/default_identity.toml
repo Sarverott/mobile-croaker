@@ -1,0 +1,10 @@
+[node]
+node_id = "{{NODE_ID}}"
+designation = "{{DESIGNATION}}"
+role = "{{ROLE}}"
+host_model = "{{HOST_MODEL}}"
+os_version = "{{OS_VERSION}}"
+operator = "{{OPERATOR}}"
+scope = "{{SCOPE}}"
+capabilities = [{{CAPABILITIES_ARRAY}}]
+tags = [{{TAGS_ARRAY}}]

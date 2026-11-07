@@ -1,0 +1,14 @@
+id: "scenario_home_back_test"
+name: "Navigation Stack & Key Verification"
+version: 1
+target_package: "system"
+steps:
+  - id: "step_home"
+    action: "press_home"
+    delay_ms: 1000
+  - id: "step_wait"
+    action: "wait"
+    delay_ms: 500
+  - id: "step_back"
+    action: "press_back"
+    delay_ms: 500

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -51,43 +53,18 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.MainViewModel
 import com.example.ui.theme.StatusGreen
 import com.example.ui.theme.TerminalBorder
-import com.example.ui.theme.TerminalSurface
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.theme.TerminalWhite
+import com.example.util.AssetHelper
 
 @Composable
 fun YamlScenarioScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
     val clipboardManager = LocalClipboardManager.current
     val activeWorkflow by viewModel.activeWorkflow.collectAsState()
 
+    val context = LocalContext.current
     var yamlText by remember {
-        mutableStateOf(
-            """
-            # Mobile Croaker / RAUSON Scenario
-            version: "1.0"
-            id: "rauson-battery-audit"
-            title: "Settings Battery Audit"
-            description: "Launches settings and audits device battery state"
-            target_package: "com.android.settings"
-            steps:
-              - name: "Launch Settings"
-                action: "LAUNCH_APP"
-                delay_ms: 1200
-              - name: "Find Battery Entry"
-                action: "CLICK_NODE"
-                target_text: "Battery"
-                coords: [540, 380]
-                delay_ms: 800
-              - name: "Scroll Down Telemetry"
-                action: "SWIPE"
-                coords: [540, 1400]
-                swipe_end: [540, 400]
-                delay_ms: 1000
-              - name: "Return to Workspace"
-                action: "GLOBAL_ACTION"
-                global_key: "BACK"
-                delay_ms: 500
-            """.trimIndent()
-        )
+        mutableStateOf(AssetHelper.loadAsset(context, "scenarios/settings_search.yaml"))
     }
 
     LazyColumn(
@@ -156,46 +133,25 @@ fun YamlScenarioScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) 
                 FilterChip(
                     selected = false,
                     onClick = {
-                        yamlText = """
-                            # Template: Quick Smoke Navigation
-                            version: "1.0"
-                            id: "smoke-nav"
-                            title: "Smoke Navigation"
-                            target_package: "com.android.settings"
-                            steps:
-                              - name: "Launch App"
-                                action: "LAUNCH_APP"
-                                delay_ms: 1000
-                              - name: "Tap Center"
-                                action: "COORDINATE_TAP"
-                                coords: [540, 960]
-                              - name: "Back Key"
-                                action: "GLOBAL_ACTION"
-                                global_key: "BACK"
-                        """.trimIndent()
+                        yamlText = AssetHelper.loadAsset(context, "scenarios/settings_search.yaml")
                     },
-                    label = { Text("Smoke Template", fontSize = 11.sp) }
+                    label = { Text("Settings Search", fontSize = 11.sp) }
                 )
 
                 FilterChip(
                     selected = false,
                     onClick = {
-                        yamlText = """
-                            # Template: ADB Shell Command Flow
-                            version: "1.0"
-                            id: "adb-flow"
-                            title: "Fleet ADB Diagnostic"
-                            target_package: "com.example"
-                            steps:
-                              - name: "Check Battery Dumpsys"
-                                action: "ADB_SHELL_COMMAND"
-                                payload: "dumpsys battery | grep level"
-                              - name: "Wakeup Screen"
-                                action: "ADB_SHELL_COMMAND"
-                                payload: "input keyevent 224"
-                        """.trimIndent()
+                        yamlText = AssetHelper.loadAsset(context, "scenarios/app_navigation.yaml")
                     },
-                    label = { Text("ADB Flow", fontSize = 11.sp) }
+                    label = { Text("App Navigation", fontSize = 11.sp) }
+                )
+
+                FilterChip(
+                    selected = false,
+                    onClick = {
+                        yamlText = AssetHelper.loadAsset(context, "scenarios/hardware_audit.yaml")
+                    },
+                    label = { Text("Hardware Audit", fontSize = 11.sp) }
                 )
 
                 OutlinedButton(
