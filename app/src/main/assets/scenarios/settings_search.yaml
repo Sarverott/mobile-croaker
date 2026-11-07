@@ -1,0 +1,24 @@
+id: "scenario_search_verify"
+name: "Settings Search & Verification"
+version: 1
+target_package: "com.android.settings"
+steps:
+  - id: "step_launch"
+    action: "launch_app"
+    target: "com.android.settings"
+    delay_ms: 1200
+  - id: "step_click_search"
+    action: "click"
+    target: "search"
+    fallback_type: "text_match"
+    delay_ms: 600
+  - id: "step_input_query"
+    action: "input"
+    target: "search_src_text"
+    text: "Battery"
+    delay_ms: 800
+  - id: "step_verify"
+    action: "wait"
+    validation:
+      type: "text_matches"
+      expected: "Battery"

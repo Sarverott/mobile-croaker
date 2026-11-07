@@ -205,6 +205,25 @@
           }
         }
       }
+    },
+    "/api/v1/hardware/clipboard": {
+      "get": { "summary": "Read system clipboard text" },
+      "post": { "summary": "Write system clipboard text" }
+    },
+    "/api/v1/hardware/telemetry": {
+      "get": { "summary": "Full hardware telemetry (battery, WiFi, Bluetooth, torch, audio)" }
+    },
+    "/api/v1/hardware/torch": {
+      "post": { "summary": "Toggle flashlight/torch" }
+    },
+    "/api/v1/hardware/button": {
+      "post": { "summary": "Simulate hardware button (volume up/down, power dialog, lock screen, screenshot)" }
+    },
+    "/api/v1/telephony/sms": {
+      "post": { "summary": "Send SMS message" }
+    },
+    "/api/v1/telephony/contacts": {
+      "get": { "summary": "Query device contacts list" }
     }
   },
   "components": {

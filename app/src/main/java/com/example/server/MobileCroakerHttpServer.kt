@@ -10,6 +10,8 @@ import com.example.mcp.MobileCroakerMcpServer
 import com.example.telemetry.RsyslogClient
 import com.example.model.SyslogSeverity
 import com.example.util.AssetHelper
+import com.example.hardware.DeviceHardwareBridge
+import android.media.AudioManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -67,6 +69,7 @@ class MobileCroakerHttpServer private constructor(private val context: Context) 
 
     private val capacitorBridge = CapacitorBridgeWrapper(context)
     private val mcpServer = MobileCroakerMcpServer(context)
+    private val hwBridge = DeviceHardwareBridge.getInstance(context)
 
     fun startServer(customPort: Int = 8080) {
         if (_isRunning.value) return
@@ -223,6 +226,56 @@ class MobileCroakerHttpServer private constructor(private val context: Context) 
                     put("status", "Camera & Screen Stream Ready")
                 }
                 Triple(200, "application/json", info.toString())
+            }
+            method == "GET" && path == "/api/v1/hardware/clipboard" -> {
+                val clip = hwBridge.getClipboardText()
+                Triple(200, "application/json", JSONObject().put("clipboardText", clip).toString())
+            }
+            method == "POST" && path == "/api/v1/hardware/clipboard" -> {
+                val obj = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+                val text = obj.optString("text", "")
+                val ok = hwBridge.setClipboardText("AgentClip", text)
+                Triple(200, "application/json", "{\"success\": $ok, \"length\": ${text.length}}")
+            }
+            method == "GET" && path == "/api/v1/hardware/telemetry" -> {
+                val allHw = JSONObject().apply {
+                    put("audio", hwBridge.getAudioTelemetry())
+                    put("wifi", hwBridge.getWifiStatus())
+                    put("bluetooth", hwBridge.getBluetoothStatus())
+                    put("torch", hwBridge.isFlashlightOn())
+                    put("location", hwBridge.getLastKnownLocation())
+                }
+                Triple(200, "application/json", allHw.toString())
+            }
+            method == "POST" && path == "/api/v1/hardware/torch" -> {
+                val obj = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+                val enable = obj.optBoolean("enable", !hwBridge.isFlashlightOn())
+                val ok = hwBridge.setFlashlight(enable)
+                Triple(200, "application/json", "{\"success\": $ok, \"enabled\": $enable}")
+            }
+            method == "POST" && path == "/api/v1/telephony/sms" -> {
+                val obj = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+                val addr = obj.optString("address", "")
+                val text = obj.optString("text", "")
+                val ok = hwBridge.sendSms(addr, text)
+                Triple(200, "application/json", "{\"success\": $ok, \"address\": \"$addr\"}")
+            }
+            method == "GET" && path == "/api/v1/telephony/contacts" -> {
+                val contacts = hwBridge.queryContacts(limit = 25)
+                Triple(200, "application/json", JSONObject().put("contacts", contacts).toString())
+            }
+            method == "POST" && path == "/api/v1/hardware/button" -> {
+                val obj = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+                val action = obj.optString("action", "")
+                val ok = when (action) {
+                    "volume_up" -> hwBridge.adjustVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE)
+                    "volume_down" -> hwBridge.adjustVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER)
+                    "power_dialog" -> hwBridge.pressPowerDialog()
+                    "lock_screen" -> hwBridge.lockScreen()
+                    "screenshot" -> hwBridge.takeAccessibilityScreenshot()
+                    else -> false
+                }
+                Triple(200, "application/json", "{\"success\": $ok, \"action\": \"$action\"}")
             }
             method == "GET" && path.startsWith("/assets/web/") -> {
                 val assetPath = "web/" + path.removePrefix("/assets/web/")

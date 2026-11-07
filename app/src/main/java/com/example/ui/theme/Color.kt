@@ -14,6 +14,7 @@ val TerminalWhite = Color(0xFFFFFFFF)
 val TerminalTextPrimary = Color(0xFFF3F4F6)
 val TerminalTextSecondary = Color(0xFFA1A1AA)
 val TerminalTextMuted = Color(0xFF71717A)
+val TerminalMuted = TerminalTextMuted
 
 // Functional Status Markers
 val StatusGreen = Color(0xFF22C55E)

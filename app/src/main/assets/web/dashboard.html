@@ -142,7 +142,12 @@
                 <li><span>Fallback Tap:</span> <code>POST /api/v1/action/tap</code></li>
                 <li><span>Text Input:</span> <code>POST /api/v1/action/type</code></li>
                 <li><span>Swipe Gesture:</span> <code>POST /api/v1/action/swipe</code></li>
-                <li><span>ADB Bridge Command:</span> <code>POST /api/v1/adb/shell</code></li>
+                <li><span>Hardware Telemetry:</span> <a href="/api/v1/hardware/telemetry" target="_blank"><code>GET /api/v1/hardware/telemetry</code></a></li>
+                <li><span>Clipboard Read:</span> <a href="/api/v1/hardware/clipboard" target="_blank"><code>GET /api/v1/hardware/clipboard</code></a></li>
+                <li><span>Torch / Flashlight:</span> <code>POST /api/v1/hardware/torch</code></li>
+                <li><span>Hardware Buttons:</span> <code>POST /api/v1/hardware/button</code></li>
+                <li><span>SMS Dispatch:</span> <code>POST /api/v1/telephony/sms</code></li>
+                <li><span>Contacts Directory:</span> <a href="/api/v1/telephony/contacts" target="_blank"><code>GET /api/v1/telephony/contacts</code></a></li>
                 <li><span>Video/RTSP Stream Info:</span> <a href="/api/v1/stream/info" target="_blank"><code>GET /api/v1/stream/info</code></a></li>
             </ul>
         </div>
@@ -159,11 +164,15 @@
                 <strong>Exposed Tools:</strong>
             </p>
             <pre>tools/list:
-  - device_info
-  - get_ui_hierarchy
-  - execute_action
-  - run_shell_command
-  - capture_screen</pre>
+  - mobile_croaker_inspect_hierarchy
+  - mobile_croaker_tap
+  - mobile_croaker_type
+  - mobile_croaker_swipe
+  - mobile_croaker_manage_clipboard
+  - mobile_croaker_hardware_control
+  - mobile_croaker_telephony_sms
+  - mobile_croaker_device_buttons
+  - mobile_croaker_adb_shell</pre>
         </div>
     </div>
 
