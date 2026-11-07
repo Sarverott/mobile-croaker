@@ -81,7 +81,14 @@ jobs:
           fi
 
       - name: Make Gradle executable
-        run: chmod +x ./gradlew
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+          else
+            echo "Gradle wrapper not found, generating..."
+            gradle wrapper
+            chmod +x ./gradlew
+          fi
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon --stacktrace

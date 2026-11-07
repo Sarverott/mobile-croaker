@@ -3,11 +3,45 @@
 version: '3'
 
 vars:
-  GREETING: Hello, world!
+  PROJECT_NAME: "Mobile Croaker"
+  SCOPE: "RAUSON (RavensArmy User Simulating Operational Node)"
+  IDENTITY: "Inceptorium Apokryf (apokryf.pl)"
 
 tasks:
   default:
-    desc: Print a greeting message
+    desc: List available project tasks
     cmds:
-      - echo "{{.GREETING}}"
+      - task --list
     silent: true
+
+  info:
+    desc: Display Mobile Croaker system information and metadata
+    cmds:
+      - echo "{{.PROJECT_NAME}} - {{.SCOPE}}"
+      - echo "Identity {{.IDENTITY}}"
+      - echo "Platform Android (SDK 24-36) / Java 17+ / Gradle 9+"
+
+  test:
+    desc: Run JVM unit tests
+    cmds:
+      - ./gradlew testDebugUnitTest
+
+  build:
+    desc: Build debug APK artifact
+    cmds:
+      - ./gradlew assembleDebug
+
+  release:
+    desc: Build signed release APK artifact
+    cmds:
+      - ./gradlew assembleRelease
+
+  clean:
+    desc: Clean build artifacts and Gradle caches
+    cmds:
+      - ./gradlew clean
+
+  wrapper:
+    desc: Ensure Gradle wrapper binaries are up to date
+    cmds:
+      - gradle wrapper

@@ -7,11 +7,13 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.util.Base64
 import com.example.accessibility.MobileCroakerAccessibilityService
 import com.example.bridge.AdbBridgeClient
 import com.example.bridge.CapacitorBridgeWrapper
 import com.example.telemetry.RsyslogClient
 import com.example.model.SyslogSeverity
+import com.example.util.AssetHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,7 +60,8 @@ class PyodideScriptEngine(private val context: Context, private val scope: Corou
             }
         }
         view.addJavascriptInterface(MobileCroakerJsBridge(), "MobileCroaker")
-        view.loadDataWithBaseURL("https://pyodide.org", buildSandboxHtml(), "text/html", "UTF-8", null)
+        val htmlContent = AssetHelper.loadAsset(context, "scripting/pyodide_runner.html")
+        view.loadDataWithBaseURL("https://pyodide.org", htmlContent, "text/html", "UTF-8", null)
     }
 
     fun executePython(script: String) {
@@ -66,22 +69,8 @@ class PyodideScriptEngine(private val context: Context, private val scope: Corou
         _isExecuting.value = true
         log("PYTHON", "Running script via Pyodide...")
 
-        val escapedScript = script.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "")
-        val jsCall = """
-            (async function() {
-                try {
-                    window.postConsoleLog('info', 'Executing Python script...');
-                    if (!window.pyodideReady) {
-                        window.postConsoleLog('warn', 'Pyodide loading in progress, please wait a moment...');
-                        await window.initPyodideRuntime();
-                    }
-                    await window.pyodide.runPythonAsync("$escapedScript");
-                    window.postConsoleLog('info', 'Python script execution finished.');
-                } catch (e) {
-                    window.postConsoleLog('error', 'Python Error: ' + e.message);
-                }
-            })();
-        """.trimIndent()
+        val b64Code = Base64.encodeToString(script.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        val jsCall = "window.runPythonBase64('$b64Code');"
 
         Handler(Looper.getMainLooper()).post {
             webView?.evaluateJavascript(jsCall) { _ ->
@@ -95,19 +84,11 @@ class PyodideScriptEngine(private val context: Context, private val scope: Corou
         _isExecuting.value = true
         log("JS", "Executing JavaScript script...")
 
-        val wrappedJs = """
-            (async function() {
-                try {
-                    $script
-                    window.postConsoleLog('info', 'JavaScript execution finished.');
-                } catch (e) {
-                    window.postConsoleLog('error', 'JS Error: ' + e.message);
-                }
-            })();
-        """.trimIndent()
+        val b64Code = Base64.encodeToString(script.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        val jsCall = "window.runJsBase64('$b64Code');"
 
         Handler(Looper.getMainLooper()).post {
-            webView?.evaluateJavascript(wrappedJs) { _ ->
+            webView?.evaluateJavascript(jsCall) { _ ->
                 _isExecuting.value = false
             }
         }
@@ -187,43 +168,5 @@ class PyodideScriptEngine(private val context: Context, private val scope: Corou
         fun logMessage(level: String, msg: String) {
             log(level.uppercase(), msg)
         }
-    }
-
-    private fun buildSandboxHtml(): String {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
-                <script>
-                    window.pyodideReady = false;
-                    window.postConsoleLog = function(level, msg) {
-                        if (window.MobileCroaker) {
-                            window.MobileCroaker.logMessage(level, msg);
-                        } else {
-                            console.log('[' + level + '] ' + msg);
-                        }
-                    };
-                    
-                    async function initPyodideRuntime() {
-                        try {
-                            window.postConsoleLog('info', 'Booting Pyodide WebAssembly runtime...');
-                            window.pyodide = await loadPyodide();
-                            window.pyodideReady = true;
-                            window.postConsoleLog('info', 'Pyodide ready! Python 3.12 active in sandbox.');
-                        } catch (e) {
-                            window.postConsoleLog('warn', 'Offline mode or CDN unavailable: ' + e.message);
-                        }
-                    }
-                    
-                    window.addEventListener('DOMContentLoaded', initPyodideRuntime);
-                </script>
-            </head>
-            <body>
-                <div id="status">Sandbox Initialized</div>
-            </body>
-            </html>
-        """.trimIndent()
     }
 }

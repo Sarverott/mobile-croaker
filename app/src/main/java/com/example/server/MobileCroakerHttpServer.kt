@@ -9,6 +9,7 @@ import com.example.bridge.CapacitorBridgeWrapper
 import com.example.mcp.MobileCroakerMcpServer
 import com.example.telemetry.RsyslogClient
 import com.example.model.SyslogSeverity
+import com.example.util.AssetHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -223,6 +224,16 @@ class MobileCroakerHttpServer private constructor(private val context: Context) 
                 }
                 Triple(200, "application/json", info.toString())
             }
+            method == "GET" && path.startsWith("/assets/web/") -> {
+                val assetPath = "web/" + path.removePrefix("/assets/web/")
+                val mime = if (path.endsWith(".css")) "text/css" else if (path.endsWith(".js")) "application/javascript" else "text/plain"
+                val content = AssetHelper.loadAsset(context, assetPath)
+                if (content.isNotEmpty()) {
+                    Triple(200, mime, content)
+                } else {
+                    Triple(404, "application/json", "{\"error\": \"Asset not found\"}")
+                }
+            }
             else -> {
                 Triple(404, "application/json", "{\"error\": \"Not Found\", \"path\": \"$path\"}")
             }
@@ -246,68 +257,13 @@ class MobileCroakerHttpServer private constructor(private val context: Context) 
     }
 
     private fun generateOpenApiSpec(): String {
-        return JSONObject().apply {
-            put("openapi", "3.0.0")
-            put("info", JSONObject().apply {
-                put("title", "Mobile Croaker / RAUSON API")
-                put("version", "1.0.0")
-                put("description", "OpenAPI interface for Mobile Croaker autonomous mobile workspace agent. Inspired by project OpenClaw. Created by Inceptorium Apokryf (apokryf.pl).")
-            })
-            put("paths", JSONObject().apply {
-                put("/api/v1/status", JSONObject().put("get", JSONObject().put("summary", "Device Status & Telemetry")))
-                put("/api/v1/hierarchy", JSONObject().put("get", JSONObject().put("summary", "Dump active window UI hierarchy")))
-                put("/api/v1/action/tap", JSONObject().put("post", JSONObject().put("summary", "Tap element or coordinates with 4-tier fallback")))
-                put("/api/v1/action/type", JSONObject().put("post", JSONObject().put("summary", "Type text into field")))
-                put("/api/v1/action/swipe", JSONObject().put("post", JSONObject().put("summary", "Swipe gesture")))
-                put("/api/v1/adb/shell", JSONObject().put("post", JSONObject().put("summary", "Execute shell command via ADB bridge")))
-                put("/mcp", JSONObject().put("post", JSONObject().put("summary", "Model Context Protocol JSON-RPC 2.0 endpoint")))
-            })
-        }.toString(2)
+        val asset = AssetHelper.loadAsset(context, "openapi/openapi.json")
+        return if (asset.isNotEmpty()) asset else "{ \"openapi\": \"3.0.3\", \"info\": { \"title\": \"Mobile Croaker API\" } }"
     }
 
     private fun generateWebDashboardHtml(): String {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Mobile Croaker • RAUSON Terminal</title>
-                <style>
-                    body { background: #0A0A0A; color: #F3F4F6; font-family: monospace; padding: 24px; line-height: 1.6; }
-                    h1 { color: #FFFFFF; border-bottom: 1px solid #333; padding-bottom: 8px; }
-                    .badge { background: #22C55E; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-                    .card { background: #161616; border: 1px solid #333; border-radius: 8px; padding: 16px; margin: 16px 0; }
-                    a { color: #38BDF8; text-decoration: none; }
-                    a:hover { text-decoration: underline; }
-                    pre { background: #000; padding: 12px; border-radius: 4px; border: 1px solid #222; overflow-x: auto; }
-                    code { color: #E5E7EB; }
-                </style>
-            </head>
-            <body>
-                <h1>MOBILE CROAKER // RAUSON OPERATIONAL NODE</h1>
-                <p>Status: <span class="badge">ACTIVE</span> • Identity: <strong>Inceptorium Apokryf (apokryf.pl)</strong></p>
-                <p>Inspired by project <a href="https://github.com/openclaw/openclaw" target="_blank">OpenClaw</a>.</p>
-                
-                <div class="card">
-                    <h3>REST & OpenAPI Endpoints</h3>
-                    <ul>
-                        <li><a href="/api/v1/openapi.json">/api/v1/openapi.json</a> - OpenAPI 3.0 Specification</li>
-                        <li><a href="/api/v1/status">/api/v1/status</a> - Live Node Telemetry</li>
-                        <li><a href="/api/v1/hierarchy">/api/v1/hierarchy</a> - Live View Hierarchy Tree</li>
-                        <li><code>POST /api/v1/action/tap</code> - Execute 4-tier fallback tap</li>
-                        <li><code>POST /api/v1/action/type</code> - Input text</li>
-                        <li><code>POST /api/v1/adb/shell</code> - Execute ADB bridge shell</li>
-                    </ul>
-                </div>
-
-                <div class="card">
-                    <h3>Model Context Protocol (MCP)</h3>
-                    <p>Endpoint: <code>POST /mcp</code> (JSON-RPC 2.0)</p>
-                    <p>Connect Claude Desktop, OpenAI Swarm, or Gemini agents to drive this phone autonomously as an MCP tool.</p>
-                </div>
-            </body>
-            </html>
-        """.trimIndent()
+        val asset = AssetHelper.loadAsset(context, "web/dashboard.html")
+        return if (asset.isNotEmpty()) asset else "<!DOCTYPE html><html><body><h1>Mobile Croaker Gateway</h1></body></html>"
     }
 
     private fun getDeviceIpAddress(): String {

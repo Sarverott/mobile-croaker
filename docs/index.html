@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mobile Croaker • RAUSON Agent Workspace</title>
+    <meta name="description" content="Autonomous mobile workspace node for AI agents. Built by Inceptorium Apokryf. Inspired by project OpenClaw.">
+    <style>
+        :root {
+            --bg-dark: #0A0C10;
+            --surface-card: #14171F;
+            --border-dim: #262C38;
+            --text-main: #F0F6FC;
+            --text-sub: #8B949E;
+            --accent-green: #3FB950;
+            --accent-blue: #58A6FF;
+            --accent-purple: #BC8CFF;
+            --accent-orange: #F0883E;
+            --mono-font: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--mono-font);
+            line-height: 1.6;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+        header {
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 24px;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .badge {
+            display: inline-block;
+            background: #238636;
+            color: #FFFFFF;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            width: fit-content;
+        }
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+            color: #FFFFFF;
+        }
+        .lead {
+            font-size: 1.15rem;
+            color: var(--text-sub);
+            max-width: 850px;
+        }
+        .meta-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+        .meta-tags a { color: var(--accent-blue); text-decoration: none; }
+        .meta-tags a:hover { text-decoration: underline; }
+        .cta-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 32px 0 48px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        .btn-primary { background: #238636; color: #FFFFFF; border: 1px solid #2EA043; }
+        .btn-primary:hover { background: #2EA043; }
+        .btn-secondary { background: var(--surface-card); color: var(--text-main); border: 1px solid var(--border-dim); }
+        .btn-secondary:hover { background: #1C212B; border-color: var(--accent-blue); }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 24px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+        .card h2 {
+            font-size: 1.25rem;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+            border-bottom: 1px solid #1F2430;
+            padding-bottom: 8px;
+        }
+        .card p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        .card ul {
+            list-style: none;
+            font-size: 0.85rem;
+        }
+        .card li {
+            padding: 6px 0;
+            border-bottom: 1px dotted #1F2430;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card li:last-child { border-bottom: none; }
+        .terminal-box {
+            background: #06080B;
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 48px;
+            overflow-x: auto;
+        }
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #161B22;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .dot-red { background: #FF5F56; }
+        .dot-yellow { background: #FFBD2E; }
+        .dot-green { background: #27C93F; }
+        pre {
+            font-size: 0.85rem;
+            color: #C9D1D9;
+            line-height: 1.5;
+        }
+        .cmd-prompt { color: var(--accent-green); }
+        .cmd-text { color: #FFFFFF; }
+        .cmd-out { color: var(--text-sub); }
+        footer {
+            border-top: 1px solid var(--border-dim);
+            padding-top: 24px;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge">RAUSON // OPERATIONAL NODE</div>
+            <h1>MOBILE CROAKER 🐸⚡</h1>
+            <p class="lead">
+                An autonomous agentic mobile workspace node transforming Android smartphones into 
+                orchestrated AI execution environments with zero-crash 4-tier accessibility fallbacks, 
+                declarative YAML workflows, and an embedded Model Context Protocol (MCP) tool server.
+            </p>
+            <div class="meta-tags">
+                <span>Org: <a href="https://apokryf.pl" target="_blank">Inceptorium Apokryf</a></span>
+                <span>•</span>
+                <span>Architect: <a href="https://sett.sarverott.com/#the_humanoid_technomancer" target="_blank">Sett Sarverott A.A.B.</a></span>
+                <span>•</span>
+                <span>Lead Engine: <strong>Merlin (Gemini 3.8 Flash)</strong></span>
+                <span>•</span>
+                <span>Heritage: <a href="https://github.com/openclaw/openclaw" target="_blank">OpenClaw</a></span>
+            </div>
+        </header>
+
+        <div class="cta-bar">
+            <a href="https://github.com/Sarverott/mobile-croaker/releases" class="btn btn-primary" target="_blank">
+                ⬇️ Download Release APK
+            </a>
+            <a href="https://github.com/Sarverott/mobile-croaker" class="btn btn-secondary" target="_blank">
+                📂 GitHub Repository
+            </a>
+            <a href="https://github.com/Sarverott/blacksmith-organization-system" class="btn btn-secondary" target="_blank">
+                🛠️ BOS Framework
+            </a>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>🛡️ 4-Tier Fallback Accessibility</h2>
+                <p>Ensures autonomous agents never fail on dynamic or shifting mobile interfaces.</p>
+                <ul>
+                    <li><span>1. View ID:</span> <code>viewIdResourceName match</code></li>
+                    <li><span>2. Fuzzy Text:</span> <code>Substring & exact text search</code></li>
+                    <li><span>3. Description:</span> <code>Accessibility label fallback</code></li>
+                    <li><span>4. Coordinates:</span> <code>ADB Shell & gesture dispatch</code></li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>🔌 Model Context Protocol (MCP)</h2>
+                <p>Native JSON-RPC 2.0 tool server letting Claude Desktop, Cursor, and Gemini drive the device.</p>
+                <ul>
+                    <li><code>device_info</code>: Hardware & telemetry dump</li>
+                    <li><code>get_ui_hierarchy</code>: Active window accessibility tree</li>
+                    <li><code>execute_action</code>: 4-tier tap, type, swipe</li>
+                    <li><code>run_shell_command</code>: Non-root ADB bridge</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>📝 Codable YAML Scenarios</h2>
+                <p>Workflows are declarative, versionable, and shareable across all RAUSON fleet nodes.</p>
+                <ul>
+                    <li>Declarative step sequences (click, input, swipe, wait)</li>
+                    <li>Assertion checks (text_matches, package_equals)</li>
+                    <li>Bi-directional YAML and JSON import/export</li>
+                    <li>Integrated in-app visual scenario runner</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>🐍 Pyodide WebAssembly Sandbox</h2>
+                <p>Isolated in-app scripting sandbox running Python 3.12 without external interpreters.</p>
+                <ul>
+                    <li>Pyodide WebAssembly core inside isolated WebView</li>
+                    <li>Native <code>window.MobileCroaker</code> JS automation bridge</li>
+                    <li>Base64-encoded execution isolating user scripts from XSS</li>
+                    <li>Real-time telemetry and console log streaming</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>🌐 OpenAPI 3.0 REST Gateway</h2>
+                <p>Embedded HTTP server (port 8080) for monitoring and external orchestration.</p>
+                <ul>
+                    <li><code>GET /api/v1/openapi.json</code>: Full OpenAPI 3.0 spec</li>
+                    <li><code>GET /api/v1/status</code>: Real-time telemetry</li>
+                    <li><code>GET /api/v1/hierarchy</code>: Interactive view tree</li>
+                    <li><code>GET /api/v1/stream/info</code>: RTSP & MJPEG video links</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>📇 Multi-Format Phone Identity</h2>
+                <p>Every node carries an autonomous identity profile (IDENTITY.md).</p>
+                <ul>
+                    <li>Standard Markdown format (<code>IDENTITY.md</code>)</li>
+                    <li>YAML (<code>identity.yaml</code>) & JSON (<code>identity.json</code>)</li>
+                    <li>TOML (<code>identity.toml</code>) & CSV (<code>identity.csv</code>)</li>
+                    <li>Role, capabilities, fleet tags, and operator notes</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="terminal-box">
+            <div class="terminal-header">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+                <span style="font-size: 0.8rem; color: var(--text-sub); margin-left: 8px;">RAUSON Terminal Live Session</span>
+            </div>
+            <pre><span class="cmd-prompt">$</span> <span class="cmd-text">curl -X POST http://127.0.0.1:8080/mcp \</span>
+    <span class="cmd-text">-H "Content-Type: application/json" \</span>
+    <span class="cmd-text">-d '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "execute_action", "arguments": {"action": "tap", "target": "search"}}, "id": 1}'</span>
+
+<span class="cmd-out">{
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [{ "type": "text", "text": "{\"success\":true,\"tier\":\"Tier 2 (Text Match)\",\"target\":\"search\"}" }]
+  },
+  "id": 1
+}</span></pre>
+        </div>
+
+        <footer>
+            <div>Mobile Croaker • RavensArmy User Simulating Operational Node (RAUSON)</div>
+            <div>Inceptorium Apokryf (<a href="https://apokryf.pl" target="_blank" style="color:var(--accent-blue);">apokryf.pl</a>) • Sett Sarverott A.A.B. • Merlin (Gemini 3.8 Flash)</div>
+            <div>Licensed under Apache 2.0 • Inspired by project OpenClaw</div>
+        </footer>
+    </div>
+</body>
+</html>
