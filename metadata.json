@@ -1,6 +1,6 @@
 {
-  "name": "OpenClaw Agent",
-  "description": "Autonomous mobile workspace agent using Accessibility Services, ADB fallback bridge, CV hierarchy navigation, and encrypted rsyslog telemetry.",
+  "name": "Mobile Croaker",
+  "description": "Inspired by project OpenClaw. Autonomous mobile workspace agent using Accessibility Services, ADB fallback bridge, CV hierarchy navigation, and encrypted rsyslog telemetry.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
